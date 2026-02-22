@@ -77,6 +77,8 @@ pytest
 
 - `GET /`
 - `GET /api/v1/health`
+- `POST /api/v1/auth/request-otp` (rate limited)
+- `GET /api/v1/me` (requires `X-API-Key`)
 
 ## Database Basics (Beginner Friendly)
 
@@ -135,3 +137,16 @@ Steps:
 Note:
 
 - If your DB URL starts with `postgres://`, this project auto-normalizes it to SQLAlchemy's `postgresql+psycopg://`.
+
+## Basic Security (Current)
+
+- CORS allowlist via `CORS_ALLOWED_ORIGINS` (comma-separated origins)
+- API key guard on protected endpoints (`X-API-Key` header)
+- In-memory fixed-window rate limit on `/api/v1/auth/*` and `/api/v1/upload/*`
+
+Production env vars to set:
+
+- `API_KEY`: long random secret
+- `CORS_ALLOWED_ORIGINS`: your app domains (comma-separated)
+- `RATE_LIMIT_WINDOW_SECONDS`: default `60`
+- `RATE_LIMIT_AUTH_REQUESTS_PER_WINDOW`: default `30`
