@@ -100,18 +100,38 @@ alembic -c app/database/alembic.ini downgrade -1
 
 ## Render Deployment Notes
 
-Render managed PostgreSQL provides a connection string. Set this env var in your Render service:
+### Option A: One-click-ish with `render.yaml` (recommended)
 
-- `DATABASE_URL=<render-postgres-connection-string>`
+This repo includes `/Users/salamhaider/26projects/blyss/Blyss-API/render.yaml` that defines:
 
-At deploy time, run migrations before starting the app:
+- a managed Postgres database (`blyss-db`)
+- a web service (`blyss-api`)
+- `DATABASE_URL` wired from that database
+- migration + API startup command
 
-```bash
-alembic -c app/database/alembic.ini upgrade head
-```
+Steps:
 
-Then start API:
+1. Push this repo to GitHub.
+2. In Render, choose Blueprint deploy and select this repo.
+3. Render will create both services and connect env vars.
+4. After deploy, open:
+   - `https://<your-render-url>/api/v1/health`
 
-```bash
-uvicorn app.main:app --host 0.0.0.0 --port $PORT
-```
+### Option B: Manual setup in Render dashboard
+
+1. Create PostgreSQL service in Render.
+2. Create Web Service from this repo.
+3. Set Web Service environment variables:
+   - `DATABASE_URL` = Postgres internal connection string
+   - `ENVIRONMENT` = `production`
+   - `APP_NAME` = `Blyss API`
+   - `API_V1_PREFIX` = `/api/v1`
+   - `SQLALCHEMY_ECHO` = `false`
+4. Set Build Command:
+   - `pip install .`
+5. Set Start Command:
+   - `alembic -c app/database/alembic.ini upgrade head && uvicorn app.main:app --host 0.0.0.0 --port $PORT`
+
+Note:
+
+- If your DB URL starts with `postgres://`, this project auto-normalizes it to SQLAlchemy's `postgresql+psycopg://`.
