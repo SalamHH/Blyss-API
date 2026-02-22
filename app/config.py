@@ -1,9 +1,10 @@
 from functools import lru_cache
 import json
 from typing import Any
+from typing import Annotated
 
 from pydantic import field_validator
-from pydantic_settings import BaseSettings, SettingsConfigDict
+from pydantic_settings import BaseSettings, NoDecode, SettingsConfigDict
 
 
 class Settings(BaseSettings):
@@ -18,7 +19,7 @@ class Settings(BaseSettings):
     sqlalchemy_echo: bool = False
     api_key: str | None = None
 
-    cors_allowed_origins: list[str] = []
+    cors_allowed_origins: Annotated[list[str], NoDecode] = []
     cors_allow_credentials: bool = True
     cors_allow_methods: list[str] = ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"]
     cors_allow_headers: list[str] = ["*"]
