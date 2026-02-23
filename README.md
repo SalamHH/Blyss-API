@@ -78,7 +78,10 @@ pytest
 - `GET /`
 - `GET /api/v1/health`
 - `POST /api/v1/auth/request-otp` (rate limited)
-- `GET /api/v1/me` (requires `X-API-Key`)
+- `POST /api/v1/auth/verify-otp`
+- `POST /api/v1/auth/refresh`
+- `POST /api/v1/auth/logout`
+- `GET /api/v1/me` (requires `Authorization: Bearer <access_token>`)
 
 ## Database Basics (Beginner Friendly)
 
@@ -129,6 +132,8 @@ Steps:
    - `APP_NAME` = `Blyss API`
    - `API_V1_PREFIX` = `/api/v1`
    - `SQLALCHEMY_ECHO` = `false`
+   - `AUTH_JWT_SECRET` = long random secret
+   - `AUTH_OTP_SECRET` = long random secret
 4. Set Build Command:
    - `pip install .`
 5. Set Start Command:
@@ -141,12 +146,14 @@ Note:
 ## Basic Security (Current)
 
 - CORS allowlist via `CORS_ALLOWED_ORIGINS` (comma-separated origins)
-- API key guard on protected endpoints (`X-API-Key` header)
+- OTP-based email login (`/api/v1/auth/request-otp` + `/api/v1/auth/verify-otp`)
+- JWT access/refresh tokens for protected endpoints
 - In-memory fixed-window rate limit on `/api/v1/auth/*` and `/api/v1/upload/*`
 
 Production env vars to set:
 
-- `API_KEY`: long random secret
 - `CORS_ALLOWED_ORIGINS`: your app domains (comma-separated)
 - `RATE_LIMIT_WINDOW_SECONDS`: default `60`
 - `RATE_LIMIT_AUTH_REQUESTS_PER_WINDOW`: default `30`
+- `AUTH_JWT_SECRET`: long random secret for signing JWTs
+- `AUTH_OTP_SECRET`: long random secret for hashing OTPs

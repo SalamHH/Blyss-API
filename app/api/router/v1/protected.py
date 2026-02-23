@@ -1,10 +1,15 @@
 from fastapi import APIRouter, Depends
 
-from app.security.auth import require_api_key
+from app.database.models.user import User
+from app.security.auth import require_current_user
 
 router = APIRouter()
 
 
-@router.get("/me", dependencies=[Depends(require_api_key)])
-def me() -> dict[str, str]:
-    return {"status": "ok"}
+@router.get("/me")
+def me(current_user: User = Depends(require_current_user)) -> dict[str, str | int | None]:
+    return {
+        "id": current_user.id,
+        "email": current_user.email,
+        "handle": current_user.handle,
+    }

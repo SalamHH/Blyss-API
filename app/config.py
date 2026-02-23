@@ -17,8 +17,6 @@ class Settings(BaseSettings):
     # Render provides DATABASE_URL for managed PostgreSQL.
     database_url: str = "postgresql+psycopg://postgres:postgres@localhost:5432/blyss"
     sqlalchemy_echo: bool = False
-    api_key: str | None = None
-
     cors_allowed_origins: Annotated[list[str], NoDecode] = []
     cors_allow_credentials: bool = True
     cors_allow_methods: list[str] = ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"]
@@ -26,6 +24,14 @@ class Settings(BaseSettings):
 
     rate_limit_window_seconds: int = 60
     rate_limit_auth_requests_per_window: int = 30
+
+    auth_jwt_secret: str = "replace-me-in-production"
+    auth_jwt_algorithm: str = "HS256"
+    auth_access_token_ttl_minutes: int = 30
+    auth_refresh_token_ttl_days: int = 30
+    auth_otp_secret: str = "replace-me-in-production"
+    auth_otp_ttl_minutes: int = 10
+    auth_otp_length: int = 6
 
     @field_validator("cors_allowed_origins", mode="before")
     @classmethod
