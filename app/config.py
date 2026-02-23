@@ -32,6 +32,9 @@ class Settings(BaseSettings):
     auth_otp_secret: str = "replace-me-in-production"
     auth_otp_ttl_minutes: int = 10
     auth_otp_length: int = 6
+    resend_api_key: str | None = None
+    resend_api_base_url: str = "https://api.resend.com"
+    email_from: str | None = None
 
     @field_validator("cors_allowed_origins", mode="before")
     @classmethod

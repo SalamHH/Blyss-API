@@ -134,6 +134,8 @@ Steps:
    - `SQLALCHEMY_ECHO` = `false`
    - `AUTH_JWT_SECRET` = long random secret
    - `AUTH_OTP_SECRET` = long random secret
+   - `RESEND_API_KEY` = your Resend API key
+   - `EMAIL_FROM` = verified sender, e.g. `Blyss <auth@your-domain.com>`
 4. Set Build Command:
    - `pip install .`
 5. Set Start Command:
@@ -157,3 +159,5 @@ Production env vars to set:
 - `RATE_LIMIT_AUTH_REQUESTS_PER_WINDOW`: default `30`
 - `AUTH_JWT_SECRET`: long random secret for signing JWTs
 - `AUTH_OTP_SECRET`: long random secret for hashing OTPs
+- `RESEND_API_KEY`: API key for sending OTP emails via Resend
+- `EMAIL_FROM`: verified sender address used by Resend

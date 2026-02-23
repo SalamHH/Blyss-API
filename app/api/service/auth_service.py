@@ -11,6 +11,7 @@ from fastapi import HTTPException, status
 from sqlalchemy import Select, select
 from sqlalchemy.orm import Session
 
+from app.api.client.resend import ResendError, send_otp_email
 from app.config import get_settings
 from app.database.models.auth import OtpCode, RefreshToken
 from app.database.models.user import User
@@ -74,6 +75,27 @@ def request_otp(db: Session, email: str) -> str | None:
     )
     db.add(entry)
     db.commit()
+
+    if settings.resend_api_key and settings.email_from:
+        try:
+            send_otp_email(
+                api_key=settings.resend_api_key,
+                from_email=settings.email_from,
+                to_email=normalized_email,
+                otp_code=otp_code,
+                otp_ttl_minutes=settings.auth_otp_ttl_minutes,
+                base_url=settings.resend_api_base_url,
+            )
+        except ResendError as exc:
+            raise HTTPException(
+                status_code=status.HTTP_502_BAD_GATEWAY,
+                detail="Could not send OTP email. Please try again.",
+            ) from exc
+    elif settings.environment == "production":
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Email delivery is not configured.",
+        )
 
     if settings.environment != "production":
         return otp_code
