@@ -40,7 +40,7 @@ services:
       - key: RESEND_API_KEY
         sync: false
       - key: EMAIL_FROM
-        sync: onboarding@resend.dev
+        value: onboarding@resend.dev
       - key: RESEND_API_BASE_URL
         value: https://api.resend.com
       - key: DATABASE_URL
