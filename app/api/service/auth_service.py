@@ -24,6 +24,12 @@ def _utcnow() -> datetime:
     return datetime.now(UTC)
 
 
+def _to_utc(dt: datetime) -> datetime:
+    if dt.tzinfo is None:
+        return dt.replace(tzinfo=UTC)
+    return dt.astimezone(UTC)
+
+
 def _normalize_email(email: str) -> str:
     return email.strip().lower()
 
@@ -211,7 +217,7 @@ def refresh_tokens(
     jti = str(payload["jti"])
 
     token_row = db.execute(select(RefreshToken).where(RefreshToken.token_jti == jti)).scalar_one_or_none()
-    if not token_row or token_row.is_revoked or token_row.expires_at <= _utcnow():
+    if not token_row or token_row.is_revoked or _to_utc(token_row.expires_at) <= _utcnow():
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Refresh token is invalid")
 
     token_row.is_revoked = True
