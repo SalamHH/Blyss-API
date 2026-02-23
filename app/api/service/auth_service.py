@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import hashlib
 import hmac
+import logging
 import secrets
 from datetime import UTC, datetime, timedelta
 from uuid import uuid4
@@ -15,6 +16,8 @@ from app.api.client.resend import ResendError, send_otp_email
 from app.config import get_settings
 from app.database.models.auth import OtpCode, RefreshToken
 from app.database.models.user import User
+
+logger = logging.getLogger(__name__)
 
 
 def _utcnow() -> datetime:
@@ -87,6 +90,7 @@ def request_otp(db: Session, email: str) -> str | None:
                 base_url=settings.resend_api_base_url,
             )
         except ResendError as exc:
+            logger.exception("Resend send_otp_email failed: %s", exc)
             raise HTTPException(
                 status_code=status.HTTP_502_BAD_GATEWAY,
                 detail="Could not send OTP email. Please try again.",
