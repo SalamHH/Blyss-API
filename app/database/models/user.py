@@ -17,9 +17,6 @@ class User(Base):
     avatar_url: Mapped[str | None] = mapped_column(Text)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
-    plants: Mapped[list["Plant"]] = relationship(
-        "Plant", back_populates="owner", cascade="all, delete-orphan"
-    )
-    posts: Mapped[list["Post"]] = relationship(
-        "Post", back_populates="author", cascade="all, delete-orphan"
+    flowers: Mapped[list["Flower"]] = relationship(
+        "Flower", back_populates="owner", cascade="all, delete-orphan"
     )
