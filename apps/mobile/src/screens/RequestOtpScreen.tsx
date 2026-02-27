@@ -48,6 +48,10 @@ export function RequestOtpScreen({ navigation }: Props) {
         >
           {busy ? <ActivityIndicator color="#ffffff" /> : <Text style={styles.buttonText}>Send OTP</Text>}
         </Pressable>
+
+        <Pressable style={styles.giftLink} onPress={() => navigation.navigate("OpenGift")}>
+          <Text style={styles.giftLinkText}>Open a Gift Instead</Text>
+        </Pressable>
       </View>
     </SafeAreaView>
   );
@@ -119,5 +123,16 @@ const styles = StyleSheet.create({
     color: "#ffffff",
     fontSize: 15,
     fontWeight: "700"
+  },
+  giftLink: {
+    marginTop: 2,
+    alignSelf: "center",
+    paddingHorizontal: 8,
+    paddingVertical: 8
+  },
+  giftLinkText: {
+    color: "#4a6b4f",
+    fontWeight: "700",
+    fontSize: 13
   }
 });

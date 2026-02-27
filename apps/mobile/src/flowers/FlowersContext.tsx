@@ -1,4 +1,13 @@
-import { FlowerDetailOut, FlowerOut, createFlower, getFlowerDetail, listFlowers, sendFlower, waterFlower } from "@blyss/shared";
+import {
+  FlowerDetailOut,
+  FlowerOut,
+  createFlower,
+  forceReadyFlowerDev,
+  getFlowerDetail,
+  listFlowers,
+  sendFlower,
+  waterFlower
+} from "@blyss/shared";
 import { createContext, useCallback, useContext, useMemo, useRef, useState } from "react";
 import { API_BASE_URL } from "../config";
 import { useAuth } from "../auth/AuthContext";
@@ -23,6 +32,7 @@ type FlowersContextValue = {
   createFlowerOptimistic: (title: string) => Promise<void>;
   waterFlowerById: (flowerId: number, message: string) => Promise<void>;
   sendFlowerById: (flowerId: number, recipientName?: string) => Promise<string>;
+  forceReadyFlowerByIdDev: (flowerId: number) => Promise<void>;
 };
 
 const FlowersContext = createContext<FlowersContextValue | null>(null);
@@ -246,6 +256,28 @@ export function FlowersProvider({ children }: { children: React.ReactNode }) {
     [loadFlowers, sendingFlowerId, withAuthenticated]
   );
 
+  const forceReadyFlowerByIdDev = useCallback(
+    async (flowerId: number) => {
+      if (!__DEV__) {
+        return;
+      }
+      setError(null);
+
+      try {
+        const updated = await withAuthenticated((token) => forceReadyFlowerDev(token, flowerId, API_BASE_URL));
+        setFlowers((prev) => prev.map((item) => (item.id === flowerId ? updated : item)));
+        await loadFlowerDetail(flowerId);
+        logEvent("flowers.dev.force_ready", { flower_id: flowerId });
+      } catch (err) {
+        const messageText = getUserErrorMessage(err, "Could not force flower to ready state");
+        setError(messageText);
+        logEvent("flowers.dev.force_ready_failed", { flower_id: flowerId, message: messageText });
+        throw err;
+      }
+    },
+    [loadFlowerDetail, withAuthenticated]
+  );
+
   const value = useMemo<FlowersContextValue>(
     () => ({
       flowers,
@@ -263,7 +295,8 @@ export function FlowersProvider({ children }: { children: React.ReactNode }) {
       getFlowerDetailById,
       createFlowerOptimistic,
       waterFlowerById,
-      sendFlowerById
+      sendFlowerById,
+      forceReadyFlowerByIdDev
     }),
     [
       flowers,
@@ -281,7 +314,8 @@ export function FlowersProvider({ children }: { children: React.ReactNode }) {
       getFlowerDetailById,
       createFlowerOptimistic,
       waterFlowerById,
-      sendFlowerById
+      sendFlowerById,
+      forceReadyFlowerByIdDev
     ]
   );
 

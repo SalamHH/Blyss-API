@@ -18,6 +18,7 @@ from app.database.models.flower import (
     FlowerStatus,
 )
 from app.database.models.user import User
+from app.config import get_settings
 from app.database.session import get_db
 from app.security.auth import require_current_user
 
@@ -311,6 +312,34 @@ def send_flower(
         scheduled_for=scheduled_for,
         sent_at=sent_at,
     )
+
+
+@router.post("/flowers/{flower_id}/dev/force-ready", response_model=FlowerOut)
+def force_ready_flower_dev(
+    flower_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_current_user),
+) -> FlowerOut:
+    settings = get_settings()
+    if settings.environment == "production":
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Not found")
+
+    flower = _get_owned_flower_or_404(db, current_user.id, flower_id)
+
+    # Dev convenience: allow resetting sent flowers into testable "ready" state.
+    if flower.delivery:
+        db.delete(flower.delivery)
+    flower.sent_at = None
+    flower.status = FlowerStatus.ready.value
+    flower.stage = 2
+    flower.water_count = max(flower.water_count, READY_WATER_COUNT)
+    if not flower.ready_at:
+        flower.ready_at = _utcnow()
+
+    db.commit()
+    db.refresh(flower)
+    logger.info("flowers.dev.force_ready user_id=%s flower_id=%s", current_user.id, flower.id)
+    return FlowerOut.model_validate(flower)
 
 
 @router.get("/flowers/open/{share_token}", response_model=FlowerOpenOut)

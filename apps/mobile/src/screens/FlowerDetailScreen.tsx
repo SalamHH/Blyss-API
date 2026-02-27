@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { ActivityIndicator, Pressable, StyleSheet, Text, TextInput, View } from "react-native";
+import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
+import * as Clipboard from "expo-clipboard";
 import { AppStackParamList } from "../navigation/types";
 import { useFlowers } from "../flowers/FlowersContext";
 import { getShareTokenHistory, ShareTokenHistoryEntry } from "../flowers/shareTokenHistory";
@@ -17,6 +18,7 @@ export function FlowerDetailScreen({ route, navigation }: Props) {
     loadFlowerDetail,
     waterFlowerById,
     sendFlowerById,
+    forceReadyFlowerByIdDev,
     wateringFlowerId,
     sendingFlowerId,
     detailLoadingFlowerId,
@@ -82,20 +84,26 @@ export function FlowerDetailScreen({ route, navigation }: Props) {
     }
   }, [canSend, flowerId, loadFlowerDetail, recipientName, refreshShareHistory, sendFlowerById]);
 
+  const handleForceReadyDev = useCallback(async () => {
+    try {
+      await forceReadyFlowerByIdDev(flowerId);
+      void loadFlowerDetail(flowerId);
+    } catch {
+      // Context-level error surface handles messaging.
+    }
+  }, [flowerId, forceReadyFlowerByIdDev, loadFlowerDetail]);
+
   const handleCopyToken = useCallback(
     async (token: string) => {
-      const clipboard = (globalThis as { navigator?: { clipboard?: { writeText: (v: string) => Promise<void> } } })
-        .navigator?.clipboard;
-
-      if (clipboard?.writeText) {
-        await clipboard.writeText(token);
+      try {
+        await Clipboard.setStringAsync(token);
         setCopyMessage("Copied token to clipboard.");
-        logEvent("flowers.share_token.copied", { flower_id: flowerId, mode: "navigator.clipboard" });
+        logEvent("flowers.share_token.copied", { flower_id: flowerId, mode: "expo-clipboard" });
         return;
+      } catch {
+        setCopyMessage("Copy failed on this build. Please copy token manually.");
+        logEvent("flowers.share_token.copy_unavailable", { flower_id: flowerId, mode: "expo-clipboard-failed" });
       }
-
-      setCopyMessage("Copy not available on this build. Manually copy the token.");
-      logEvent("flowers.share_token.copy_unavailable", { flower_id: flowerId });
     },
     [flowerId]
   );
@@ -126,90 +134,104 @@ export function FlowerDetailScreen({ route, navigation }: Props) {
 
   return (
     <SafeAreaView style={styles.container}>
-      <View style={styles.card}>
-        <Text style={styles.kicker}>Flower Detail</Text>
-        <Text style={styles.title}>{flower.title}</Text>
-        <Text style={styles.meta}>{flower.flower_type} • {flower.status}</Text>
-        <Text style={styles.meta}>Water count: {flower.water_count}/7</Text>
-        <Text style={styles.meta}>
-          Delivery: {detail?.delivery_mode ? detail.delivery_mode : "not sent"}
-        </Text>
-        {detail?.recipient_name ? <Text style={styles.meta}>Recipient: {detail.recipient_name}</Text> : null}
-        {detail?.recipient_contact ? <Text style={styles.meta}>Contact: {detail.recipient_contact}</Text> : null}
+      <ScrollView style={styles.scroll} contentContainerStyle={styles.scrollContent}>
+        <View style={styles.card}>
+          <Text style={styles.kicker}>Flower Detail</Text>
+          <Text style={styles.title}>{flower.title}</Text>
+          <Text style={styles.meta}>{flower.flower_type} • {flower.status}</Text>
+          <Text style={styles.meta}>Water count: {flower.water_count}/7</Text>
+          <Text style={styles.meta}>
+            Delivery: {detail?.delivery_mode ? detail.delivery_mode : "not sent"}
+          </Text>
+          {detail?.recipient_name ? <Text style={styles.meta}>Recipient: {detail.recipient_name}</Text> : null}
+          {detail?.recipient_contact ? <Text style={styles.meta}>Contact: {detail.recipient_contact}</Text> : null}
 
-        <Text style={styles.sectionLabel}>Water Today</Text>
-        <TextInput
-          placeholder="Write a supportive message"
-          value={waterMessage}
-          onChangeText={setWaterMessage}
-          style={styles.input}
-          editable={canWater && !isWatering}
-        />
-        <Pressable
-          style={[styles.button, (!canWater || !waterMessage.trim() || isWatering) && styles.buttonDisabled]}
-          onPress={handleWater}
-          disabled={!canWater || !waterMessage.trim() || isWatering}
-        >
-          {isWatering ? <ActivityIndicator color="#ffffff" /> : <Text style={styles.buttonText}>Water Flower</Text>}
-        </Pressable>
+          <Text style={styles.sectionLabel}>Water Today</Text>
+          <TextInput
+            placeholder="Write a supportive message"
+            value={waterMessage}
+            onChangeText={setWaterMessage}
+            style={styles.input}
+            editable={canWater && !isWatering}
+          />
+          <Pressable
+            style={[styles.button, (!canWater || !waterMessage.trim() || isWatering) && styles.buttonDisabled]}
+            onPress={handleWater}
+            disabled={!canWater || !waterMessage.trim() || isWatering}
+          >
+            {isWatering ? <ActivityIndicator color="#ffffff" /> : <Text style={styles.buttonText}>Water Flower</Text>}
+          </Pressable>
 
-        <Text style={styles.sectionLabel}>Send Gift</Text>
-        <TextInput
-          placeholder="Recipient name (optional)"
-          value={recipientName}
-          onChangeText={setRecipientName}
-          style={styles.input}
-          editable={canSend && !isSending}
-        />
-        <Pressable
-          style={[styles.sendButton, (!canSend || isSending) && styles.buttonDisabled]}
-          onPress={handleSend}
-          disabled={!canSend || isSending}
-        >
-          {isSending ? <ActivityIndicator color="#ffffff" /> : <Text style={styles.buttonText}>Send Now</Text>}
-        </Pressable>
+          <Text style={styles.sectionLabel}>Send Gift</Text>
+          <TextInput
+            placeholder="Recipient name (optional)"
+            value={recipientName}
+            onChangeText={setRecipientName}
+            style={styles.input}
+            editable={canSend && !isSending}
+          />
+          <Pressable
+            style={[styles.sendButton, (!canSend || isSending) && styles.buttonDisabled]}
+            onPress={handleSend}
+            disabled={!canSend || isSending}
+          >
+            {isSending ? <ActivityIndicator color="#ffffff" /> : <Text style={styles.buttonText}>Send Now</Text>}
+          </Pressable>
+          {__DEV__ ? (
+            <Pressable
+              style={[styles.devButton, (isSending || isWatering) && styles.buttonDisabled]}
+              onPress={handleForceReadyDev}
+              disabled={isSending || isWatering}
+            >
+              <Text style={styles.buttonText}>Force Ready (Dev)</Text>
+            </Pressable>
+          ) : null}
 
-        <Text style={styles.sectionLabel}>Share Token History</Text>
-        {shareHistory.length === 0 ? (
-          <Text style={styles.meta}>No sent gift tokens yet.</Text>
-        ) : (
-          <View style={styles.historyList}>
-            {shareHistory.map((entry) => (
-              <View key={`${entry.token}-${entry.created_at}`} style={styles.historyRow}>
-                <Text style={styles.historyToken} numberOfLines={1}>{entry.token}</Text>
-                <Pressable style={styles.copyButton} onPress={() => void handleCopyToken(entry.token)}>
-                  <Text style={styles.copyText}>Copy</Text>
-                </Pressable>
-              </View>
-            ))}
+          <Text style={styles.sectionLabel}>Share Token History</Text>
+          {shareHistory.length === 0 ? (
+            <Text style={styles.meta}>No sent gift tokens yet.</Text>
+          ) : (
+            <View style={styles.historyList}>
+              {shareHistory.map((entry) => (
+                <View key={`${entry.token}-${entry.created_at}`} style={styles.historyRow}>
+                  <Text style={styles.historyToken} numberOfLines={1}>{entry.token}</Text>
+                  <Pressable style={styles.copyButton} onPress={() => void handleCopyToken(entry.token)}>
+                    <Text style={styles.copyText}>Copy</Text>
+                  </Pressable>
+                </View>
+              ))}
+            </View>
+          )}
+
+          <Text style={styles.sectionLabel}>Timeline</Text>
+          <View style={styles.timelineRow}>
+            <Text style={styles.timelineLabel}>Created</Text>
+            <Text style={styles.timelineValue}>{new Date(flower.created_at).toLocaleString()}</Text>
           </View>
-        )}
+          {detail?.sent_at ? (
+            <View style={styles.timelineRow}>
+              <Text style={styles.timelineLabel}>Sent</Text>
+              <Text style={styles.timelineValue}>{new Date(detail.sent_at).toLocaleString()}</Text>
+            </View>
+          ) : (
+            <View style={styles.timelineRow}>
+              <Text style={styles.timelineLabel}>Sent</Text>
+              <Text style={styles.timelineValue}>Not sent yet</Text>
+            </View>
+          )}
 
-        <Text style={styles.sectionLabel}>Timeline</Text>
-        <View style={styles.timelineRow}>
-          <Text style={styles.timelineLabel}>Created</Text>
-          <Text style={styles.timelineValue}>{new Date(flower.created_at).toLocaleString()}</Text>
+          {copyMessage ? <Text style={styles.success}>{copyMessage}</Text> : null}
+          {sendResult ? <Text style={styles.success}>{sendResult}</Text> : null}
+          {error ? <Text style={styles.error}>{error}</Text> : null}
+
+          <Pressable style={styles.ghostButton} onPress={() => navigation.navigate("FlowersList")}>
+            <Text style={styles.ghostButtonText}>Back to List</Text>
+          </Pressable>
+          <Pressable style={styles.ghostButton} onPress={() => navigation.navigate("OpenGift")}>
+            <Text style={styles.ghostButtonText}>Go to Open Gift</Text>
+          </Pressable>
         </View>
-        {detail?.sent_at ? (
-          <View style={styles.timelineRow}>
-            <Text style={styles.timelineLabel}>Sent</Text>
-            <Text style={styles.timelineValue}>{new Date(detail.sent_at).toLocaleString()}</Text>
-          </View>
-        ) : (
-          <View style={styles.timelineRow}>
-            <Text style={styles.timelineLabel}>Sent</Text>
-            <Text style={styles.timelineValue}>Not sent yet</Text>
-          </View>
-        )}
-
-        {copyMessage ? <Text style={styles.success}>{copyMessage}</Text> : null}
-        {sendResult ? <Text style={styles.success}>{sendResult}</Text> : null}
-        {error ? <Text style={styles.error}>{error}</Text> : null}
-
-        <Pressable style={styles.ghostButton} onPress={() => navigation.navigate("FlowersList")}>
-          <Text style={styles.ghostButtonText}>Back to List</Text>
-        </Pressable>
-      </View>
+      </ScrollView>
     </SafeAreaView>
   );
 }
@@ -218,9 +240,16 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: "#f6f4ef",
-    alignItems: "center",
-    justifyContent: "center",
     padding: 24
+  },
+  scroll: {
+    width: "100%"
+  },
+  scrollContent: {
+    flexGrow: 1,
+    width: "100%",
+    alignItems: "center",
+    paddingBottom: 24
   },
   card: {
     width: "100%",
@@ -280,6 +309,15 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     minHeight: 46,
+    paddingHorizontal: 16
+  },
+  devButton: {
+    marginTop: 4,
+    borderRadius: 12,
+    backgroundColor: "#6f5f96",
+    alignItems: "center",
+    justifyContent: "center",
+    minHeight: 44,
     paddingHorizontal: 16
   },
   buttonDisabled: {

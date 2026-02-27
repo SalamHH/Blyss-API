@@ -42,6 +42,9 @@ export function FlowersListScreen({ navigation }: Props) {
           <Pressable style={styles.ghostButton} onPress={() => navigation.navigate("CreateFlower")}>
             <Text style={styles.ghostButtonText}>Create</Text>
           </Pressable>
+          <Pressable style={styles.ghostButton} onPress={() => navigation.navigate("OpenGift")}>
+            <Text style={styles.ghostButtonText}>Open Gift</Text>
+          </Pressable>
           <Pressable style={styles.ghostButton} onPress={() => navigation.navigate("Profile")}>
             <Text style={styles.ghostButtonText}>Profile</Text>
           </Pressable>

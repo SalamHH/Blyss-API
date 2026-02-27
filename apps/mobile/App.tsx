@@ -8,6 +8,7 @@ import { FlowersProvider } from "./src/flowers/FlowersContext";
 import { AuthStackParamList, AppStackParamList } from "./src/navigation/types";
 import { RequestOtpScreen } from "./src/screens/RequestOtpScreen";
 import { VerifyOtpScreen } from "./src/screens/VerifyOtpScreen";
+import { OpenGiftScreen } from "./src/screens/OpenGiftScreen";
 import { FlowersListScreen } from "./src/screens/FlowersListScreen";
 import { CreateFlowerScreen } from "./src/screens/CreateFlowerScreen";
 import { FlowerDetailScreen } from "./src/screens/FlowerDetailScreen";
@@ -40,6 +41,7 @@ function AppNavigation() {
               <AppStack.Screen name="FlowersList" component={FlowersListScreen} options={{ title: "Flowers" }} />
               <AppStack.Screen name="CreateFlower" component={CreateFlowerScreen} options={{ title: "Create" }} />
               <AppStack.Screen name="FlowerDetail" component={FlowerDetailScreen} options={{ title: "Flower" }} />
+              <AppStack.Screen name="OpenGift" component={OpenGiftScreen} options={{ title: "Open Gift" }} />
               <AppStack.Screen name="Profile" component={ProfileScreen} options={{ title: "Profile" }} />
             </AppStack.Navigator>
           </FlowersProvider>
@@ -51,6 +53,7 @@ function AppNavigation() {
               component={VerifyOtpScreen}
               options={{ title: "Verify OTP", headerBackVisible: false, gestureEnabled: false }}
             />
+            <AuthStack.Screen name="OpenGift" component={OpenGiftScreen} options={{ title: "Open Gift" }} />
           </AuthStack.Navigator>
         )}
       </NavigationContainer>

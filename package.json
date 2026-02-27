@@ -18,5 +18,11 @@
   },
   "engines": {
     "node": ">=20"
+  },
+  "dependencies": {
+    "@shopify/react-native-skia": "2.2.12",
+    "expo-clipboard": "~8.0.8",
+    "react-native-gesture-handler": "~2.28.0",
+    "react-native-reanimated": "~4.1.1"
   }
 }

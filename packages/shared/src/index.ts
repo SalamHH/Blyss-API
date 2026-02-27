@@ -114,6 +114,24 @@ export type FlowerDetailOut = {
   sent_at: string | null;
 };
 
+export type DropRevealOut = {
+  id: number;
+  day_number: number;
+  drop_type: string;
+  message: string | null;
+  media_url: string | null;
+  created_at: string;
+};
+
+export type FlowerOpenOut = {
+  flower_id: number;
+  title: string;
+  flower_type: string;
+  sender_name: string;
+  opened_at: string | null;
+  drops: DropRevealOut[];
+};
+
 export type RefreshTokenOperation = (refreshToken: string) => Promise<TokenOut>;
 
 export async function runWithTokenRefresh<T>(params: {
@@ -287,6 +305,31 @@ export async function sendFlower(
     payload,
     accessToken
   );
+}
+
+export async function forceReadyFlowerDev(
+  accessToken: string,
+  flowerId: number,
+  apiBaseUrl: string = DEFAULT_API_BASE_URL
+): Promise<FlowerOut> {
+  return postJson<FlowerOut, Record<string, never>>(
+    `${apiBaseUrl}/api/v1/flowers/${flowerId}/dev/force-ready`,
+    {},
+    accessToken
+  );
+}
+
+export async function openFlowerByToken(
+  shareToken: string,
+  apiBaseUrl: string = DEFAULT_API_BASE_URL
+): Promise<FlowerOpenOut> {
+  const response = await fetch(`${apiBaseUrl}/api/v1/flowers/open/${shareToken}`);
+
+  if (!response.ok) {
+    throw await parseApiError(response);
+  }
+
+  return (await response.json()) as FlowerOpenOut;
 }
 
 async function parseApiError(response: Response): Promise<ApiError> {
