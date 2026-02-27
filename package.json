@@ -1,0 +1,22 @@
+{
+  "name": "blyss",
+  "private": true,
+  "version": "0.1.0",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "mobile:start": "npm run start --workspace @blyss/mobile",
+    "mobile:android": "npm run android --workspace @blyss/mobile",
+    "mobile:ios": "npm run ios --workspace @blyss/mobile",
+    "mobile:web": "npm run web --workspace @blyss/mobile",
+    "mobile:typecheck": "npm run typecheck --workspace @blyss/mobile",
+    "mobile:test": "npm run test --workspace @blyss/mobile",
+    "shared:typecheck": "npm run typecheck --workspace @blyss/shared",
+    "shared:test": "npm run test --workspace @blyss/shared"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

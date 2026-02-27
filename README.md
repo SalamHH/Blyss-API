@@ -1,6 +1,6 @@
-# Blyss-API
+# Blyss Monorepo
 
-FastAPI backend template for the Blyss flower app.
+Monorepo for Blyss services and clients.
 
 ## Tech Baseline
 
@@ -15,6 +15,8 @@ FastAPI backend template for the Blyss flower app.
 ## Project Structure
 
 ```
+apps/
+  mobile/                 # React Native + Expo app
 app/
   api/
     client/
@@ -36,11 +38,14 @@ app/
   config.py
   main.py
 tests/
+packages/
+  shared/                 # Shared TypeScript types/constants
+package.json              # npm workspaces config
 pyproject.toml
 .env.example
 ```
 
-## Quick Start
+## Quick Start (Backend API)
 
 1. Create and activate a virtual environment.
 2. Install dependencies:
@@ -72,6 +77,80 @@ python -m uvicorn app.main:app --reload --port 9001
 ```bash
 pytest
 ```
+
+## Quick Start (Mobile App - Expo)
+
+1. Install Node.js `20+`.
+2. Install workspace dependencies from repo root:
+
+```bash
+npm install
+```
+
+3. Start Expo dev server:
+
+```bash
+npm run mobile:start
+```
+
+Environment variable (recommended):
+
+```bash
+cp apps/mobile/.env.example apps/mobile/.env
+```
+
+- `EXPO_PUBLIC_API_BASE_URL` controls the backend URL used by the mobile app.
+- Typical values:
+  - iOS Simulator: `http://127.0.0.1:9001`
+  - Android Emulator: `http://10.0.2.2:9001`
+  - Physical device: `http://<your-laptop-lan-ip>:9001`
+
+Optional:
+
+```bash
+npm run mobile:android
+npm run mobile:ios
+npm run mobile:web
+npm run mobile:test
+```
+
+Note:
+
+- The starter mobile flow supports OTP sign-in:
+  - `POST /api/v1/auth/request-otp`
+  - `POST /api/v1/auth/verify-otp`
+  - `POST /api/v1/auth/refresh`
+  - `GET /api/v1/me`
+  - `GET /api/v1/flowers/{flower_id}` (owner detail + delivery metadata)
+- Navigation uses separate Auth/App stacks (`@react-navigation/native` + native stack):
+  - Auth: `RequestOtp`, `VerifyOtp`
+  - App: `FlowersList`, `CreateFlower`, `FlowerDetail`, `Profile`
+- Auth/session state is centralized in `apps/mobile/src/auth/AuthContext.tsx`.
+- Flower list/create state is centralized in `apps/mobile/src/flowers/FlowersContext.tsx`.
+- Flower creation is optimistic and flower list supports pull-to-refresh.
+- Flower detail supports:
+  - watering (`POST /api/v1/flowers/{flower_id}/water`)
+  - instant sending (`POST /api/v1/flowers/{flower_id}/send`)
+- Flower detail now includes local persistent share-token history and copy action.
+- Flower detail now shows delivery status, recipient info, and a simple created/sent timeline row.
+- Tokens are stored with Expo SecureStore.
+- On app startup, the client auto-refreshes expired access tokens using the stored refresh token.
+- Global banner surfaces status/errors across screens.
+- Lightweight analytics logs are emitted in mobile (`apps/mobile/src/lib/analytics.ts`) and API route logs (`app/api/router/v1/*`).
+- User-facing error mapping for common API failures (401/409/422/429) is centralized in `apps/mobile/src/lib/errorMessages.ts`.
+
+Shared package tests:
+
+```bash
+npm run shared:test
+```
+
+CI:
+
+- GitHub Actions workflow at `.github/workflows/ci.yml` runs:
+  - backend tests
+  - shared/mobile typechecks
+  - shared/mobile tests
 
 ## First Endpoints
 

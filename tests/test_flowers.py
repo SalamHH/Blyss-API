@@ -135,3 +135,23 @@ def test_open_scheduled_flower_before_delivery_is_blocked() -> None:
     opened = client.get(f"/api/v1/flowers/open/{share_token}")
     assert opened.status_code == 403
     assert opened.json()["detail"] == "Gift is not available yet"
+
+
+def test_get_flower_detail_for_owner() -> None:
+    client, _ = _build_test_client()
+    headers = _auth_headers(client, "detail-owner@example.com")
+
+    created = client.post("/api/v1/flowers", json={"title": "Detail View"}, headers=headers)
+    assert created.status_code == 201
+    flower_id = created.json()["id"]
+
+    detail = client.get(f"/api/v1/flowers/{flower_id}", headers=headers)
+    assert detail.status_code == 200
+    payload = detail.json()
+
+    assert payload["flower"]["id"] == flower_id
+    assert payload["flower"]["title"] == "Detail View"
+    assert payload["share_token"] is None
+    assert payload["delivery_mode"] is None
+    assert payload["recipient_name"] is None
+    assert payload["recipient_contact"] is None

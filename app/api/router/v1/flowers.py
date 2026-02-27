@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from datetime import UTC, datetime
+import logging
 import secrets
 
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -21,6 +22,7 @@ from app.database.session import get_db
 from app.security.auth import require_current_user
 
 router = APIRouter()
+logger = logging.getLogger(__name__)
 
 READY_WATER_COUNT = 7
 
@@ -125,6 +127,15 @@ class FlowerOpenOut(BaseModel):
     drops: list[DropRevealOut]
 
 
+class FlowerDetailOut(BaseModel):
+    flower: FlowerOut
+    share_token: str | None
+    delivery_mode: str | None
+    recipient_name: str | None
+    recipient_contact: str | None
+    sent_at: datetime | None
+
+
 @router.post("/flowers", response_model=FlowerOut, status_code=status.HTTP_201_CREATED)
 def create_flower(
     payload: FlowerCreateIn,
@@ -139,6 +150,7 @@ def create_flower(
     db.add(flower)
     db.commit()
     db.refresh(flower)
+    logger.info("flowers.create user_id=%s flower_id=%s", current_user.id, flower.id)
     return FlowerOut.model_validate(flower)
 
 
@@ -151,6 +163,32 @@ def list_flowers(
         select(Flower).where(Flower.owner_id == current_user.id).order_by(Flower.created_at.desc(), Flower.id.desc())
     ).scalars()
     return [FlowerOut.model_validate(flower) for flower in flowers]
+
+
+@router.get("/flowers/{flower_id}", response_model=FlowerDetailOut)
+def get_flower(
+    flower_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_current_user),
+) -> FlowerDetailOut:
+    flower = db.execute(
+        select(Flower)
+        .where(Flower.id == flower_id)
+        .where(Flower.owner_id == current_user.id)
+        .options(selectinload(Flower.delivery))
+    ).scalar_one_or_none()
+    if not flower:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Flower not found")
+
+    logger.info("flowers.detail user_id=%s flower_id=%s", current_user.id, flower.id)
+    return FlowerDetailOut(
+        flower=FlowerOut.model_validate(flower),
+        share_token=flower.delivery.share_token if flower.delivery else None,
+        delivery_mode=flower.delivery.delivery_mode if flower.delivery else None,
+        recipient_name=flower.delivery.recipient_name if flower.delivery else None,
+        recipient_contact=flower.delivery.recipient_contact if flower.delivery else None,
+        sent_at=flower.delivery.sent_at if flower.delivery else None,
+    )
 
 
 @router.post("/flowers/{flower_id}/water", response_model=FlowerWaterOut)
@@ -206,6 +244,7 @@ def water_flower(
     db.commit()
     db.refresh(flower)
     db.refresh(drop)
+    logger.info("flowers.water user_id=%s flower_id=%s day=%s", current_user.id, flower.id, drop.day_number)
 
     return FlowerWaterOut(
         flower=FlowerOut.model_validate(flower),
@@ -263,6 +302,7 @@ def send_flower(
         flower.sent_at = now
 
     db.commit()
+    logger.info("flowers.send user_id=%s flower_id=%s mode=%s", current_user.id, flower.id, mode)
 
     return FlowerSendOut(
         flower_id=flower.id,
